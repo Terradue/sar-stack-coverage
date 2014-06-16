@@ -13,16 +13,20 @@ library("rgeos")
 max.cycles <- list("ERS-1"=200, "ERS-2"=200, "ENVISAT"=110)
 
 # get the bbox
-os.stop <- rciop.getparam("bbox")
+bbox <- rciop.getparam("bbox")
 
 # a function to get the mission: ERS-1, ERS-2 or ENVISAT
-GetMission <- function (osd.description) {
+GetMissionInfo <- function (osd.description) {
   
   cat.res <- getURL(str_replace(osd.description, "description", "rdf"))
   
   mission <- xpathApply(xmlParse(cat.res), "//dclite4g:Series/eop:platform", xmlValue)
   
-  return(mission)
+  title <- xpathApply(xmlParse(cat.res), "//dclite4g:Series/dc:title", xmlValue)
+  
+  identifier <- xpathApply(xmlParse(cat.res), "//dclite4g:Series/dc:identifier", xmlValue)
+  
+  return(list(identifier=identifier, mission=mission, title=title))
 }
 
 GetCoverage <- function(osd.description, response.type, q) {
@@ -68,38 +72,12 @@ GetCoverage <- function(osd.description, response.type, q) {
   # set the names of the data frame
   rownames(my.df) <- paste("cycle", 1:as.numeric(max.cycles[satelite]), sep="_")
   colnames(my.df) <- rel.orbit
-  
-  # plot the information
-  
-  # prepare the canvas
-  n.columns <- 3
-  
-  if (length(rel.orbit) %% n.columns == 1 ) {
-    n.rows <- length(rel.orbit) %/% n.columns + 1
-  } else {
-    n.rows <- length(rel.orbit) %/% n.columns
-  }
-  
-  par(mfrow = c(n.rows, n.columns))
-  
-  # plot each of the relative orbits
-  for (index in seq(1, length(rel.orbit))) {
-    
-    plot(my.df[,index], 
-      type="h", 
-      lwd=1, 
-      axes=FALSE, 
-      ylab=paste("# of passes:", length(which(my.df[,index] == TRUE))),
-      xlab=paste("cycle from 1 to ", max.cycles[satelite]))
-    
-    title(paste("Orbit", colnames(my.df)[index], sep=" "))
-  }
-  
-  title(main="ASAR Image Mode Level 0 over the Etna", outer=T)
-  
 
-}
-
+  return(my.df)
+  
+}  
+  
+  
 # set the response type for the catalogue queries
 response.type <- "application/rdf+xml"
 
@@ -110,6 +88,8 @@ open(f)
 
 while(length(osd.description <- readLines(f, n=1)) > 0) {
   
+  mission.info <- GetMissionInfo(osd.description)
+  
   # get the queryables exposed by the OpenSearch document
   q <- GetOSQueryables(osd.description, response.type)
   
@@ -117,6 +97,38 @@ while(length(osd.description <- readLines(f, n=1)) > 0) {
   q$value[q$type == "geo:box"] <- bbox
   q$value[q$type == "count"] <- 900
 
-  GetCoverage(osd.description, response.type, q)
+  coverage.df <- GetCoverage(osd.description, response.type, q)
+
+  # plot the information
+  # prepare the canvas
+  n.columns <- 3
   
+  if (length(coverage.df) %% n.columns == 1 ) {
+    n.rows <- length(coverage.df) %/% n.columns + 1
+  } else {
+    n.rows <- length(coverage.df) %/% n.columns
+  }
+  
+  # create a meaningful outputname
+  pdf(filename=paste(TMPDIR, as.character(mission.info$identifier), sep="/"))
+  
+  # create the multi-plot canvas
+  par(mfrow = c(n.rows, n.columns))
+  
+  # plot each of the relative orbits
+  for (index in seq(1, length(length(coverage.df)))) {
+    
+    plot(my.df[,index], 
+      type="h", 
+      lwd=1, 
+      axes=FALSE, 
+      ylab=paste("# of passes:", length(which(length(coverage.df)[,index] == TRUE))),
+      xlab=paste("cycle from 1 to ", max.cycles[as.character(mission.info$mission)]))
+    
+    title(paste("Orbit", colnames(coverage.df)[index], sep=" "))
+  }
+  
+  title(main=paste(as.character(mission.info$title), "over", bbox, sep=" "), outer=T)
+  dev.off()
+   
 }
