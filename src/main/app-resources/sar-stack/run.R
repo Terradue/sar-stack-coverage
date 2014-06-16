@@ -1,7 +1,7 @@
 #!/usr/bin/Rscript --vanilla --slave --quiet
  
 library("rciop")
-
+library("rOpenSearch")
 library("httr")
 library("stringr")
 library("XML")
@@ -35,7 +35,7 @@ GetCoverage <- function(osd.description, response.type, q) {
   q <- GetOSQueryables(osd.description, response.type)
   
   # fill the queryables values
-  q$value[q$type == "geo:box"] <- etna.bbox
+  q$value[q$type == "geo:box"] <- bbox
   q$value[q$type == "count"] <- 900
   
   # query the catalogue 
@@ -87,7 +87,9 @@ f <- file("stdin")
 open(f)
 
 while(length(osd.description <- readLines(f, n=1)) > 0) {
-  
+ 
+  rciop.log("INFO", paste("Analysing:", osd.description, sep=" "))
+ 
   mission.info <- GetMissionInfo(osd.description)
   
   # get the queryables exposed by the OpenSearch document
@@ -97,7 +99,11 @@ while(length(osd.description <- readLines(f, n=1)) > 0) {
   q$value[q$type == "geo:box"] <- bbox
   q$value[q$type == "count"] <- 900
 
+  satelite <- as.character(GetMissionInfo(osd.description)$mission)
+
   coverage.df <- GetCoverage(osd.description, response.type, q)
+
+  rciop.log("DEBUG", head(coverage.df))
 
   # plot the information
   # prepare the canvas
@@ -109,20 +115,22 @@ while(length(osd.description <- readLines(f, n=1)) > 0) {
     n.rows <- length(coverage.df) %/% n.columns
   }
   
+  pdf.filename <- paste(TMPDIR, "/", as.character(mission.info$identifier), ".pdf", sep="")
+
   # create a meaningful outputname
-  pdf(filename=paste(TMPDIR, as.character(mission.info$identifier), sep="/"))
+  pdf(pdf.filename)
   
   # create the multi-plot canvas
   par(mfrow = c(n.rows, n.columns))
   
   # plot each of the relative orbits
-  for (index in seq(1, length(length(coverage.df)))) {
+  for (index in seq(1, length(coverage.df))) {
     
-    plot(my.df[,index], 
+    plot(coverage.df[,index], 
       type="h", 
       lwd=1, 
       axes=FALSE, 
-      ylab=paste("# of passes:", length(which(length(coverage.df)[,index] == TRUE))),
+      ylab=paste("# of passes:", length(which(coverage.df[,index] == TRUE))),
       xlab=paste("cycle from 1 to ", max.cycles[as.character(mission.info$mission)]))
     
     title(paste("Orbit", colnames(coverage.df)[index], sep=" "))
@@ -130,5 +138,6 @@ while(length(osd.description <- readLines(f, n=1)) > 0) {
   
   title(main=paste(as.character(mission.info$title), "over", bbox, sep=" "), outer=T)
   dev.off()
-   
+
+  rciop.publish(pdf.filename, metalink=TRUE, recursive=FALSE)   
 }

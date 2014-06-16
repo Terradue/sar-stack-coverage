@@ -3,9 +3,9 @@
 xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="${artifactId}">
  <jobTemplates>
     <jobTemplate id="sar-coverage">
-      <streamingExecutable>/application/sar-coverage/run.R</streamingExecutable>
+      <streamingExecutable>/application/sar-stack/run.R</streamingExecutable>
       <defaultParameters>
-        <parameter id="bbox">14.805,37.601,15.156,37.886</parameter>
+        <parameter id="bbox" title="Bounding box" abstract="Area of interest defined as xmin,ymin,xmax,ymax" scope="runtime">14.805,37.601,15.156,37.886</parameter>
       </defaultParameters>
       <defaultJobconf>
           <property id="mapred.task.timeout">6000000</property>
@@ -18,7 +18,7 @@ xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="${artifactId}">
       <job id="sar-coverage"/>
       <sources>
         <!--<source refid="file:urls">/tmp/inputs</source>-->
-        <source refid="str:list">http://eo-virtual-archive4.esa.int/search/ER02_SAR_IM__0P/description<source>
+        <source id="osd" title="OpenSearch description document URL" abstract="One or more OpenSearch description documents" scope="runtime" refid="string:list">http://eo-virtual-archive4.esa.int/search/ER02_SAR_IM__0P/description</source>
         <!--<source refid="cas:series">http://localhost/catalogue/sandbox/MER_RR__1P/description</source>-->
       </sources>
       <parameters>
