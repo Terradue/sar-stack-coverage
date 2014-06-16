@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="us-ascii"?>
+<application xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="${artifactId}">
+ <jobTemplates>
+    <jobTemplate id="sar-coverage">
+      <streamingExecutable>/application/sar-coverage/run.R</streamingExecutable>
+      <defaultParameters>
+        <parameter id="bbox">14.805,37.601,15.156,37.886</parameter>
+      </defaultParameters>
+      <defaultJobconf>
+          <property id="mapred.task.timeout">6000000</property>
+      </defaultJobconf>
+    </jobTemplate>
+  </jobTemplates>
+  <workflow id="myworkflow" title="My workflow" abstract="This is my workflow">
+    <workflowVersion>1.0</workflowVersion>
+    <node id="n-sar-coverage">
+      <job id="sar-coverage"/>
+      <sources>
+        <!--<source refid="file:urls">/tmp/inputs</source>-->
+        <source refid="str:list">http://eo-virtual-archive4.esa.int/search/ER02_SAR_IM__0P/description<source>
+        <!--<source refid="cas:series">http://localhost/catalogue/sandbox/MER_RR__1P/description</source>-->
+      </sources>
+      <parameters>
+        <!--<parameter id="param1">value3</parameter>-->
+      </parameters>
+    </node>
+  </workflow>
+</application>
